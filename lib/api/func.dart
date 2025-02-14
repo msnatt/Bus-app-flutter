@@ -32,33 +32,20 @@ class Func {
   Future<LatLng?> trackLocation() async {
     Fetch_Bus();
     Fetch_Stations();
-    print("Tracking..");
+    print("func Tracking..");
     var locationSettings = const LocationSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 0, // อัพเดตทุก 10 เมตร
     );
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
 
-      currentLocation = LatLng(position.latitude, position.longitude);
-
-      print("Tracked $currentLocation");
-      return currentLocation;
-    } catch (e) {
+    Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+        (Position position) async {
+        currentLocation = LatLng(position.latitude, position.longitude);
+        print("func tracked ${currentLocation}");
+    }, onError: (e) {
       print('Error: ${e.toString()}');
-    }
-    // Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-    //     (Position position) async {
-    //   setState(() {
-    //     currentLocation = LatLng(position.latitude, position.longitude);
-    //   });
-    // }, onError: (e) {
-    //   print('Error: ${e.toString()}');
-    // });
-
-    print("Tracked ${currentLocation}");
+    });
+    return null;
   }
 
   LatLng? handleData2(businfo) {
@@ -105,8 +92,7 @@ class Func {
   }
 
 // ============================ Call btn ==============================
-  Future<bool> AddPassenger() async {
-    trackLocation();
+  Future<bool> AddPassenger(currentLocation, stations) async {
     print('Call Btn : $currentLocation $allStations');
     Map<String, dynamic>? nearestStation = findNearestStation(currentLocation, allStations);
 
@@ -120,11 +106,11 @@ class Func {
     return false;
   }
 
-  Map<String, dynamic>? findNearestStation(LatLng? currentLocation, List<dynamic> allStations) {
+  Map<String, dynamic>? findNearestStation(LatLng? currentLocation, List<dynamic>? allStations) {
     Map<String, dynamic>? nearestStation;
     double minDistance = double.infinity;
 
-    for (var station in allStations) {
+    for (var station in allStations!) {
       double latitude = double.tryParse(station['latitude'].toString()) ?? 0.0;
       double longitude =
           double.tryParse(station['longitude'].toString()) ?? 0.0;

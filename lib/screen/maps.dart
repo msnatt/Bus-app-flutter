@@ -5,8 +5,10 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:my_appbus/api/func.dart';
+import 'package:my_appbus/api/globalvar.dart';
 import 'dart:convert';
-import '../api/bus_api.dart';
+
+import 'package:my_appbus/screen/menuscreen.dart';
 
 class maps extends StatefulWidget {
   final String ipAddress; // รับ ipAddress จากหน้า PinCodeWidget
@@ -27,19 +29,26 @@ class _mapsState extends State<maps> {
   String _data = '';
   String _data2 = '';
   LatLng? apiLocation; // ตัวแปรเก็บตำแหน่งจาก API
-  LatLng? currentLocation;
+  LatLng? currentLocation = MenuScreen.currentLocation;
+  List<dynamic>? stations;
+  Map<String, dynamic>? station;
+  int roundCall = GetroundCall();
+  int maxroundCall = Getmaxroundcall();
 
   @override
   void initState() {
     super.initState();
-    function.trackLocation();
+    gps_tracking();
     fetchBusRoutes();
   }
 
   void fetchBusRoutes() async {
     List<String> routes = await function.Fetch_Bus();
+    stations = await function.Fetch_Stations();
+
     setState(() {
       busRoutes = routes;
+      stations = stations;
     });
   }
 
@@ -47,199 +56,248 @@ class _mapsState extends State<maps> {
     _mapController.move(location, 15.0);
   }
 
+  Future<void> gps_tracking() async {
+    print("Tracking..");
+    var locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0, // อัพเดตทุก 10 เมตร
+    );
+
+    Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+        (Position position) async {
+      if (mounted) {
+        setState(() {
+          currentLocation = LatLng(position.latitude, position.longitude);
+          print("Tracked ${currentLocation}");
+        });
+      }
+    }, onError: (e) {
+      print('Error: ${e.toString()}');
+    });
+  }
+
 // ============================== UI ==================================
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      Positioned(
-        top: 40, // ตำแหน่งจากด้านบน
-        left: 20, // ตำแหน่งจากด้านซ้าย
-        child: FloatingActionButton(
-          backgroundColor: Colors.white, // สีพื้นหลังปุ่ม
-          elevation: 5, // เงาให้ดูมีมิติ
-          mini: true, // ทำให้ปุ่มเล็กลง
-          onPressed: () {
-            Navigator.pop(context); // ย้อนกลับไปหน้าก่อนหน้า
-          },
-          child: Icon(Icons.arrow_back, color: Colors.black), // ไอคอนลูกศร
-        ),
-      ),
-      Scaffold(
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(kToolbarHeight),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-          ),
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter:
-                      //currentLocation ?? LatLng(7.167384, 100.613034),     //songkla
-                      currentLocation ?? LatLng(13.8097, 100.66), //bkk
-                  initialZoom: 5,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.evo.app',
-                    maxNativeZoom: 19,
-                  ),
-                  MarkerLayer(
-                    markers: [
-                      if (currentLocation != null)
-                        Marker(
-                          point: currentLocation!,
-                          width: 80,
-                          height: 80,
-                          child: const Icon(Icons.location_on,
-                              size: 40, color: Colors.red),
-                        ),
-                      if (apiLocation != null)
-                        Marker(
-                          point: apiLocation!,
-                          width: 80,
-                          height: 80,
-                          child: const Icon(Icons.directions_bus,
-                              size: 40, color: Colors.green),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20), //
-            const Column(
-              mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+        body: Stack(children: [
+      Column(
+        children: [
+          Expanded(
+            child: Stack(
               children: [
-                Text(
-                  "เลือกรถบัส",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: currentLocation ?? LatLng(13.8097, 100.66),
+                    initialZoom: 5,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.evo.app',
+                      maxNativeZoom: 19,
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        if (currentLocation != null)
+                          Marker(
+                            point: currentLocation!,
+                            width: 80,
+                            height: 80,
+                            child: const Icon(Icons.location_on,
+                                size: 40, color: Colors.red),
+                          ),
+                        if (apiLocation != null)
+                          Marker(
+                            point: apiLocation!,
+                            width: 80,
+                            height: 80,
+                            child: const Icon(Icons.directions_bus,
+                                size: 40, color: Colors.green),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+                // ปุ่มย้อนกลับแทน AppBar
+                Positioned(
+                  top: 40, // ระยะห่างจากด้านบน
+                  left: 16, // ระยะห่างจากซ้าย
+                  child: FloatingActionButton(
+                    backgroundColor: Colors.white,
+                    mini: true,
+                    elevation: 3,
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Icon(Icons.arrow_back, color: Colors.black),
+                  ),
+                ),
+                // ปุ่มลอยสำหรับซูมไปที่ตำแหน่งปัจจุบัน
+                Positioned(
+                  bottom: 20,
+                  right: 20,
+                  child: FloatingActionButton(
+                    backgroundColor: Colors.blue,
+                    onPressed: () {
+                      if (currentLocation != null) {
+                        _mapController.move(
+                            currentLocation!, 15); // ซูมไปที่ตำแหน่งปัจจุบัน
+                      }
+                    },
+                    child: const Icon(Icons.my_location, color: Colors.white),
+                  ),
                 ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: selectedRoute,
-                    icon: const Icon(Icons.arrow_drop_down, size: 30),
-                    iconSize: 24,
-                    elevation: 16,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 20,
-                    ),
-                    underline: Container(
-                      height: 2,
-                      color: Colors.blue,
-                    ),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedRoute = newValue!;
-                      });
-                    },
-                    items:
-                        busRoutes.map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
+          ),
+          const SizedBox(height: 20), //
+          const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "ค้นหารถบัส",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButton<String>(
+                  isExpanded: true,
+                  value: selectedRoute,
+                  icon: const Icon(Icons.arrow_drop_down, size: 30),
+                  iconSize: 24,
+                  elevation: 16,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
                   ),
-                  const SizedBox(height: 40),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.blue,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 50, vertical: 15),
-                        ),
-                        onPressed: () async {
-                          var success =
-                              await function.createDataSearch(selectedRoute);
+                  underline: Container(
+                    height: 2,
+                    color: Colors.blue,
+                  ),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedRoute = newValue!;
+                    });
+                  },
+                  items:
+                      busRoutes.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
 
-                          if (success != null) {
-                            setState(() {
-                              // อัปเดตค่าและบังคับให้ FlutterMap รีเรนเดอร์
-                              apiLocation = success;
-                            });
-                            var snackBar =
-                                function.searchSuccessToast(selectedRoute);
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(snackBar);
-                            setcentermap(apiLocation ?? LatLng(13.81, 100.66));
-                          } else {
-                            Fluttertoast.showToast(
-                              msg: "Failed to connected please try again.",
-                              toastLength: Toast.LENGTH_SHORT,
-                              gravity: ToastGravity.BOTTOM,
-                              backgroundColor: Colors.red,
-                              textColor: Colors.white,
-                              fontSize: 16.0,
-                            );
-                          }
-                        },
-                        child: const Text('ค้นหา'),
+                Text(
+                  "",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 50, vertical: 15),
                       ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.blue,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 50, vertical: 15),
-                        ),
-                        onPressed: () async {
-                          var success = await function.AddPassenger();
-                          if (success) {
+                      onPressed: () async {
+                        var success =
+                            await function.createDataSearch(selectedRoute);
+                        if (success != null) {
+                          setState(() {
+                            apiLocation = success;
+                          });
+                          var snackBar =
+                              function.searchSuccessToast(selectedRoute);
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                          setcentermap(apiLocation ?? LatLng(13.81, 100.66));
+                        } else {
+                          Fluttertoast.showToast(
+                            msg: "ไม่พบตำแหน่งรถบัส",
+                            toastLength: Toast.LENGTH_SHORT,
+                            gravity: ToastGravity.CENTER,
+                            backgroundColor: Colors.red,
+                            textColor: Colors.white,
+                            fontSize: 16.0,
+                          );
+                        }
+                      },
+                      child: const Text('ค้นหา'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 50, vertical: 15),
+                      ),
+                      onPressed: () async {
+                        if (roundCall < maxroundCall) {
+                          var success = await function.AddPassenger(
+                              currentLocation, stations);
+                          if (!success) {
+                            AddroundCall(1);
+                            setState(() {
+                              roundCall = GetroundCall();
+                            });
                             var snackBar = function.showSuccessToast();
                             ScaffoldMessenger.of(context)
                                 .showSnackBar(snackBar);
                           } else {
                             Fluttertoast.showToast(
-                              msg: "Failed to create data get",
+                              msg:
+                                  "ตำแหน่งของคุณไม่อยู่ในเงื่อนไข.                โปรดลองอีกครั้ง",
                               toastLength: Toast.LENGTH_SHORT,
-                              gravity: ToastGravity.BOTTOM,
+                              gravity: ToastGravity.CENTER,
                               backgroundColor: Colors.red,
                               textColor: Colors.white,
                               fontSize: 16.0,
                             );
                           }
-                        },
-                        child: const Text('เรียกรถ'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 60),
-                  // SizedBox(
-                  //   height: 100,
-                  //   child: SingleChildScrollView(
-                  //     child: Text(_data),
-                  //   ),
-                  // ),
-                  // SizedBox(
-                  //   height: 100,
-                  //   child: SingleChildScrollView(
-                  //     child: Text(_data2),
-                  //   ),
-                  // ),
-                ],
-              ),
+                        } else {
+                          Fluttertoast.showToast(
+                            msg: "รถได้รับคำร้องแล้ว ใจเย็นๆ รู้ว่ารีบ!",
+                            toastLength: Toast.LENGTH_SHORT,
+                            gravity: ToastGravity.CENTER,
+                            backgroundColor: Colors.green[900],
+                            textColor: Colors.white,
+                            fontSize: 16.0,
+                          );
+                        }
+                      },
+                      child: const Text('เรียกรถ'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // SizedBox(
+                //   height: 100,
+                //   child: SingleChildScrollView(
+                //     child: Text(_data),
+                //   ),
+                // ),
+                // SizedBox(
+                //   height: 100,
+                //   child: SingleChildScrollView(
+                //     child: Text(_data2),
+                //   ),
+                // ),
+              ],
             ),
-          ],
-        ),
-      )
-    ]);
+          ),
+        ],
+      ),
+    ]));
   }
 }

@@ -2,13 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:my_appbus/api/func.dart';
+import 'package:my_appbus/api/globalvar.dart';
 import 'package:my_appbus/screen/bus.dart';
 import 'package:my_appbus/screen/maps.dart';
 
 class MenuScreen extends StatefulWidget {
   final String ipAddress;
+  static LatLng? currentLocation;
 
   const MenuScreen({super.key, required this.ipAddress});
 
@@ -20,30 +23,55 @@ class _MenuScreenState extends State<MenuScreen> {
   final Func function = Func();
   Timer? _timer;
   LatLng? currentLocation;
+  List<dynamic>? stations;
+  Map<String, dynamic>? station;
+  int roundCall = GetroundCall();
+  int maxroundCall = Getmaxroundcall();
+
   String Stationtext = "กำลังค้นหาสถานี..";
 
   @override
   void initState() {
     super.initState();
+    gps_tracking();
     startLocationUpdates();
   }
 
-  void startLocationUpdates() {
+  Future<void> startLocationUpdates() async {
+    stations = await function.Fetch_Stations();
     _timer = Timer.periodic(Duration(seconds: 3), (timer) async {
-      LatLng? newLocation = await function.trackLocation();
-      List<dynamic> stations = await function.Fetch_Stations();
-      Map<String, dynamic>? station = await function.findNearestStation(newLocation, stations);
-
-      currentLocation = newLocation;
-      if (station?['distance'] <= 50) {
-        setState(() {
+      // GET roundCall
+      roundCall = GetroundCall();
+      // หา station ที่ใกล้ที่สุด
+      station = await function.findNearestStation(currentLocation, stations);
+      setState(() {
+        if ((station?['distance'] <= 50)) {
           Stationtext = station?['name'];
-        });
-      } else {
-                setState(() {
+        } else {
+          SetroundCall(0);
           Stationtext = "กำลังค้นหาสถานี..";
+        }
+      });
+    });
+  }
+
+  Future<void> gps_tracking() async {
+    print("Tracking..");
+    var locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 1, // อัพเดตทุก 10 เมตร
+    );
+
+    Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+        (Position position) async {
+      if (mounted) {
+        setState(() {
+          currentLocation = LatLng(position.latitude, position.longitude);
+          print("Tracked ${currentLocation}");
         });
       }
+    }, onError: (e) {
+      print('Error: ${e.toString()}');
     });
   }
 
@@ -51,10 +79,6 @@ class _MenuScreenState extends State<MenuScreen> {
   void dispose() {
     _timer?.cancel(); // หยุด Timer เมื่อ Widget ถูกทำลาย
     super.dispose();
-  }
-
-  Future<void> findstationonload() async {
-    LatLng? currentLocation_ = await function.trackLocation();
   }
 
   @override
@@ -81,6 +105,10 @@ class _MenuScreenState extends State<MenuScreen> {
                 Stationtext,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
               ),
+              Text(
+                "${roundCall} / ${maxroundCall}",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+              ),
               const SizedBox(height: 80),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -97,16 +125,35 @@ class _MenuScreenState extends State<MenuScreen> {
                         ),
                       ),
                       onPressed: () async {
-                        var success = await function.AddPassenger();
-                        if (success) {
-                          var snackBar = function.showSuccessToast();
-                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        if (roundCall < maxroundCall) {
+                          var success = await function.AddPassenger(
+                              currentLocation, stations);
+                          if (success) {
+                            AddroundCall(1);
+                            int updateroundcall = GetroundCall();
+                            setState(() {
+                              roundCall = updateroundcall;
+                            });
+                            var snackBar = function.showSuccessToast();
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(snackBar);
+                          } else {
+                            Fluttertoast.showToast(
+                              msg:
+                                  "ตำแหน่งของคุณไม่อยู่ในเงื่อนไข. โปรดลองอีกครั้ง",
+                              toastLength: Toast.LENGTH_SHORT,
+                              gravity: ToastGravity.CENTER,
+                              backgroundColor: Colors.red,
+                              textColor: Colors.white,
+                              fontSize: 16.0,
+                            );
+                          }
                         } else {
                           Fluttertoast.showToast(
-                            msg: "Failed to create data get",
+                            msg: "รถได้รับคำร้องแล้ว ใจเย็นๆ รู้ว่ารีบ!",
                             toastLength: Toast.LENGTH_SHORT,
-                            gravity: ToastGravity.BOTTOM,
-                            backgroundColor: Colors.red,
+                            gravity: ToastGravity.CENTER,
+                            backgroundColor: Colors.green[900],
                             textColor: Colors.white,
                             fontSize: 16.0,
                           );
