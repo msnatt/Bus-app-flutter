@@ -1,0 +1,237 @@
+import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:my_appbus/api/bus_api.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+
+class Func {
+  final FetchApi fetchApi = FetchApi();
+  List<String> busRoutes = [];
+  List<dynamic> allStations = [];
+
+  String _data = '';
+  String _data2 = '';
+  LatLng? apiLocation; // ตัวแปรเก็บตำแหน่งจาก API
+  LatLng? currentLocation;
+
+  // ฟังก์ชันสำหรับโหลดข้อมูล
+  Future<List<String>> Fetch_Bus() async {
+    List<String> routes = await fetchApi.fetchBus();
+    busRoutes = routes; // อัปเดตค่า busRoutes
+    return busRoutes;
+  }
+
+  Future<List<dynamic>> Fetch_Stations() async {
+    List<dynamic> stations = await fetchApi.fetchAllStations();
+    allStations = stations;
+    return allStations;
+  }
+
+// ======================== GET Loacation on phone =========================
+  Future<LatLng?> trackLocation() async {
+    Fetch_Bus();
+    Fetch_Stations();
+    print("Tracking..");
+    var locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0, // อัพเดตทุก 10 เมตร
+    );
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      currentLocation = LatLng(position.latitude, position.longitude);
+
+      print("Tracked $currentLocation");
+      return currentLocation;
+    } catch (e) {
+      print('Error: ${e.toString()}');
+    }
+    // Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+    //     (Position position) async {
+    //   setState(() {
+    //     currentLocation = LatLng(position.latitude, position.longitude);
+    //   });
+    // }, onError: (e) {
+    //   print('Error: ${e.toString()}');
+    // });
+
+    print("Tracked ${currentLocation}");
+  }
+
+  LatLng? handleData2(businfo) {
+    LatLng? location;
+    if (businfo.isNotEmpty) {
+      final parsedData = jsonDecode(businfo); // แปลง JSON เป็น Map
+
+      // ตรวจสอบ success และดึง latitude และ longtitude
+      if (parsedData['result']['success'] == 'True') {
+        final double latitude = parsedData['result']['data']['latitude'];
+        final double longitude = parsedData['result']['data']['longtitude'];
+
+        location = LatLng(latitude, longitude);
+      } else {
+        print('Failed to fetch valid data businfo.');
+      }
+    }
+    return location;
+  }
+
+  Future<LatLng?> createDataSearch(selectedRoute) async {
+    var url = Uri.parse('http://49.0.69.152:4491/call_bus');
+    var response = await http.post(
+      url,
+      headers: {
+        'Content-Type':
+            'application/json' // Set content-type to application/json
+      },
+      body: jsonEncode({
+        "jsonrpc": "2.0",
+        "params": {"name": selectedRoute}
+      }),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      _data2 = response.body; // บันทึกข้อมูลใน _data2
+
+      apiLocation =
+          handleData2(_data2); // เรียกใช้ฟังก์ชันนี้เพื่อแสดงหมุดเขียว
+      return apiLocation; // ส่งสำเร็จ
+    } else {
+      _data2 = "Failed to create data";
+      return apiLocation; // ส่งไม่สำเร็จ
+    }
+  }
+
+// ============================ Call btn ==============================
+  Future<bool> AddPassenger() async {
+    trackLocation();
+    print('Call Btn : $currentLocation $allStations');
+    Map<String, dynamic>? nearestStation = findNearestStation(currentLocation, allStations);
+
+    if (nearestStation?['distance'] <= 50) {
+      bool success = await createDataGet(nearestStation);
+      print(nearestStation?['name']);
+      if (success) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Map<String, dynamic>? findNearestStation(LatLng? currentLocation, List<dynamic> allStations) {
+    Map<String, dynamic>? nearestStation;
+    double minDistance = double.infinity;
+
+    for (var station in allStations) {
+      double latitude = double.tryParse(station['latitude'].toString()) ?? 0.0;
+      double longitude =
+          double.tryParse(station['longitude'].toString()) ?? 0.0;
+      String name = station['name'].toString(); // ชื่อสถานี
+      double distance = Geolocator.distanceBetween(
+        currentLocation!.latitude,
+        currentLocation!.longitude,
+        latitude,
+        longitude,
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestStation = {
+          'name': name,
+          'latitude': latitude,
+          'longtitude': longitude,
+          'distance': minDistance, // เก็บระยะห่างไว้ด้วย
+        };
+      }
+    }
+    return nearestStation;
+  }
+
+  Future<bool> createDataGet(neareststation) async {
+    var url = Uri.parse(
+        'http://49.0.69.152:4491/update_passenger'); // ใช้ ipAddress ที่รับมา
+    var response = await http.post(
+      url,
+      headers: {
+        'Content-Type':
+            'application/json' // Set content-type to application/json
+      },
+      body: jsonEncode({
+        "jsonrpc": "2.0",
+        "params": {
+          "name": neareststation['name'],
+          "distance": neareststation['distance'],
+        }
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      _data = 'Data created successfully : ${response.body}';
+      return true; // ส่งสำเร็จ
+    } else {
+      print('Failed to create data: ${response.body}');
+      _data = "Failed to create data";
+      return false; // ส่งไม่สำเร็จ
+    }
+  }
+// ============================ End Call btn ==============================
+
+// ================================ Popup =================================
+// ฟังก์ชันที่จะเรียกใช้เมื่อคุณต้องการแสดง Pop-up
+  SnackBar showSuccessToast() {
+    var snackBar = const SnackBar(
+      content: Row(
+        children: [
+          Icon(Icons.check_circle, color: Colors.white),
+          SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'เรียกรถสำเร็จ!',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ],
+      ),
+      backgroundColor: Colors.blue,
+      duration: Duration(seconds: 3),
+      behavior: SnackBarBehavior.floating,
+    );
+
+    return snackBar;
+  }
+
+  // ฟังก์ชันที่จะเรียกใช้เมื่อคุณต้องการแสดง Pop-up
+  SnackBar searchSuccessToast(selectedRoute) {
+    var snackBar = SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Colors.white),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ค้นหารถ! $selectedRoute',
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ],
+      ),
+      backgroundColor: Colors.blue,
+      duration: const Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+    );
+
+    return snackBar;
+  }
+
+// ============================= End Popup ===============================
+}
