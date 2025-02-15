@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:my_appbus/screen/menuscreen.dart';
 import '../api/check_pin_api.dart';
+import 'package:geolocator/geolocator.dart';
 import 'bus.dart';
 
 class PinCodeWidget extends StatefulWidget {
@@ -18,6 +20,8 @@ class _PinCodeWidgetState extends State<PinCodeWidget> {
   String check = '';
   String ipAddress = '49.0.69.152'; //add
   bool isPinVisible = false;
+  
+  LatLng? currentLocation ;
 
   // Start for call API
   void startCheckPin(String chkpin) async {
@@ -69,6 +73,8 @@ class _PinCodeWidgetState extends State<PinCodeWidget> {
     }
   }
   // End call API
+
+  
 
   /// This widget will be used for each digit
   Widget numButton(int number) {

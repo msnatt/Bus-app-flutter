@@ -105,10 +105,6 @@ class _MenuScreenState extends State<MenuScreen> {
                 Stationtext,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
               ),
-              Text(
-                "${roundCall} / ${maxroundCall}",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
-              ),
               const SizedBox(height: 80),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -142,7 +138,7 @@ class _MenuScreenState extends State<MenuScreen> {
                               msg:
                                   "ตำแหน่งของคุณไม่อยู่ในเงื่อนไข. โปรดลองอีกครั้ง",
                               toastLength: Toast.LENGTH_SHORT,
-                              gravity: ToastGravity.CENTER,
+                              gravity: ToastGravity.BOTTOM,
                               backgroundColor: Colors.red,
                               textColor: Colors.white,
                               fontSize: 16.0,
@@ -150,9 +146,9 @@ class _MenuScreenState extends State<MenuScreen> {
                           }
                         } else {
                           Fluttertoast.showToast(
-                            msg: "รถได้รับคำร้องแล้ว ใจเย็นๆ รู้ว่ารีบ!",
+                            msg: "รถได้รับคำร้องแล้ว กรุณารอซักครู่!",
                             toastLength: Toast.LENGTH_SHORT,
-                            gravity: ToastGravity.CENTER,
+                            gravity: ToastGravity.BOTTOM,
                             backgroundColor: Colors.green[900],
                             textColor: Colors.white,
                             fontSize: 16.0,

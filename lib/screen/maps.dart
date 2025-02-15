@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -25,7 +27,8 @@ class _mapsState extends State<maps> {
   final Func function = Func();
   String selectedRoute = 'BUS101';
   List<String> busRoutes = [];
-  List<dynamic> allStations = [];
+  List<dynamic> allStations = [];  
+  Timer? _timer;
   String _data = '';
   String _data2 = '';
   LatLng? apiLocation; // ตัวแปรเก็บตำแหน่งจาก API
@@ -35,20 +38,43 @@ class _mapsState extends State<maps> {
   int roundCall = GetroundCall();
   int maxroundCall = Getmaxroundcall();
 
+  String stationtext = "กำลังค้นหาตำแหน่งของคุณ..";
+
   @override
   void initState() {
     super.initState();
     gps_tracking();
-    fetchBusRoutes();
+    fetch_alldata();
+    startLocationUpdates();
   }
-
-  void fetchBusRoutes() async {
+  Future<void> fetch_alldata() async {
     List<String> routes = await function.Fetch_Bus();
     stations = await function.Fetch_Stations();
-
     setState(() {
       busRoutes = routes;
       stations = stations;
+    });
+  }
+
+  Future<void> startLocationUpdates() async {
+    _timer = Timer.periodic(Duration(seconds: 3), (timer) async {
+      // GET roundCall
+      roundCall = GetroundCall();
+      // หา station ที่ใกล้ที่สุด
+      if(currentLocation != null){
+        station = await function.findNearestStation(currentLocation, stations);
+      } else{
+        station?['distance'] = 99999;
+      }
+      setState(() {
+        if (station?['distance'] <= 50) {
+          stationtext = "คุณอยู่ใกล้ ${station?['name']}";
+        } else {
+          SetroundCall(0);
+          stationtext = "กำลังค้นหาตำแหน่งของคุณ..";
+        }
+        
+      });
     });
   }
 
@@ -65,12 +91,10 @@ class _mapsState extends State<maps> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings).listen(
         (Position position) async {
-      if (mounted) {
         setState(() {
           currentLocation = LatLng(position.latitude, position.longitude);
           print("Tracked ${currentLocation}");
         });
-      }
     }, onError: (e) {
       print('Error: ${e.toString()}');
     });
@@ -163,6 +187,10 @@ class _mapsState extends State<maps> {
               ),
             ],
           ),
+          Text(
+            stationtext,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+          ),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -246,7 +274,7 @@ class _mapsState extends State<maps> {
                         if (roundCall < maxroundCall) {
                           var success = await function.AddPassenger(
                               currentLocation, stations);
-                          if (!success) {
+                          if (success) {
                             AddroundCall(1);
                             setState(() {
                               roundCall = GetroundCall();
@@ -267,7 +295,7 @@ class _mapsState extends State<maps> {
                           }
                         } else {
                           Fluttertoast.showToast(
-                            msg: "รถได้รับคำร้องแล้ว ใจเย็นๆ รู้ว่ารีบ!",
+                            msg: "รถได้รับคำร้องแล้ว กรุณารอซักครู่!",
                             toastLength: Toast.LENGTH_SHORT,
                             gravity: ToastGravity.CENTER,
                             backgroundColor: Colors.green[900],

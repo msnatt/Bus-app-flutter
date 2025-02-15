@@ -200,7 +200,7 @@ class Func {
           const Icon(Icons.check_circle, color: Colors.white),
           const SizedBox(width: 8),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 'ค้นหารถ! $selectedRoute',
