@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:my_appbus/screen/menuscreen.dart';
 import '../api/check_pin_api.dart';
-import 'package:geolocator/geolocator.dart';
-import 'bus.dart';
 
 class PinCodeWidget extends StatefulWidget {
   const PinCodeWidget({super.key});
@@ -44,11 +42,9 @@ class _PinCodeWidgetState extends State<PinCodeWidget> {
       tmpResult = value.cast<Map<String, dynamic>>();
     });
 
-    String check_code;
+
 
     for (Map<String, dynamic>? message in tmpResult) {
-      check_code = message?['code'] ??
-          ''; // ถ้า code เป็น null จะใช้ค่าเริ่มต้นเป็น '' (string ว่าง)
       check = message?['message'] ??
           ''; // ถ้า message เป็น null จะใช้ค่าเริ่มต้นเป็น '' (string ว่าง)
     }

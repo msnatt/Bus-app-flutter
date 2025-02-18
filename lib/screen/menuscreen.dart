@@ -8,6 +8,7 @@ import 'package:my_appbus/api/func.dart';
 import 'package:my_appbus/api/globalvar.dart';
 import 'package:my_appbus/screen/bus.dart';
 import 'package:my_appbus/screen/maps.dart';
+import 'package:my_appbus/screen/station.dart';
 
 class MenuScreen extends StatefulWidget {
   final String ipAddress;
@@ -222,7 +223,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           context,
                           MaterialPageRoute(
                               builder: (context) =>
-                                  Bus(ipAddress: widget.ipAddress)),
+                                  StationScreen()),
                         );
                       },
                       child: Ink(

@@ -27,7 +27,7 @@ class _mapsState extends State<maps> {
   final Func function = Func();
   String selectedRoute = 'BUS101';
   List<String> busRoutes = [];
-  List<dynamic> allStations = [];  
+  List<dynamic> allStations = [];
   Timer? _timer;
   String _data = '';
   String _data2 = '';
@@ -47,6 +47,7 @@ class _mapsState extends State<maps> {
     fetch_alldata();
     startLocationUpdates();
   }
+
   Future<void> fetch_alldata() async {
     List<String> routes = await function.Fetch_Bus();
     stations = await function.Fetch_Stations();
@@ -61,20 +62,21 @@ class _mapsState extends State<maps> {
       // GET roundCall
       roundCall = GetroundCall();
       // หา station ที่ใกล้ที่สุด
-      if(currentLocation != null){
+      if (currentLocation != null) {
         station = await function.findNearestStation(currentLocation, stations);
-      } else{
+      } else {
         station?['distance'] = 99999;
       }
-      setState(() {
-        if (station?['distance'] <= 50) {
-          stationtext = "คุณอยู่ใกล้ ${station?['name']}";
-        } else {
-          SetroundCall(0);
-          stationtext = "กำลังค้นหาตำแหน่งของคุณ..";
-        }
-        
-      });
+      if (mounted) {
+        setState(() {
+          if (station?['distance'] <= 50) {
+            stationtext = "คุณอยู่ใกล้ ${station?['name']}";
+          } else {
+            SetroundCall(0);
+            stationtext = "กำลังค้นหาตำแหน่งของคุณ..";
+          }
+        });
+      }
     });
   }
 
@@ -91,10 +93,10 @@ class _mapsState extends State<maps> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings).listen(
         (Position position) async {
-        setState(() {
-          currentLocation = LatLng(position.latitude, position.longitude);
-          print("Tracked ${currentLocation}");
-        });
+      setState(() {
+        currentLocation = LatLng(position.latitude, position.longitude);
+        print("Tracked ${currentLocation}");
+      });
     }, onError: (e) {
       print('Error: ${e.toString()}');
     });

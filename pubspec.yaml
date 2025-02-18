@@ -54,9 +54,17 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
+  icons_launcher: ^3.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+icons_launcher:
+  image_path:  "assets/images/app_icon.png"
+  platforms:
+    android:
+      enable: true
+    ios:
+      enable: true
 flutter_launcher_icons:
   android: true
   ios: true
@@ -79,7 +87,8 @@ flutter:
     - assets/images/map_btn.png
     - assets/images/station_btn.png
     - assets/images/app_icon.png
-
+    - assets/station.json
+    - assets/images/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
