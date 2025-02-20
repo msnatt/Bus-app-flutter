@@ -10,7 +10,6 @@ class Func {
   List<String> busRoutes = [];
   List<dynamic> allStations = [];
 
-  String _data = '';
   String _data2 = '';
   LatLng? apiLocation; // ตัวแปรเก็บตำแหน่งจาก API
   LatLng? currentLocation;
@@ -28,7 +27,9 @@ class Func {
     return allStations;
   }
 
-// ======================== GET Loacation on phone =========================
+  
+
+// ======================== GET Location on phone =========================
   Future<LatLng?> trackLocation() async {
     Fetch_Bus();
     Fetch_Stations();
@@ -117,7 +118,7 @@ class Func {
       String name = station['name'].toString(); // ชื่อสถานี
       double distance = Geolocator.distanceBetween(
         currentLocation!.latitude,
-        currentLocation!.longitude,
+        currentLocation.longitude,
         latitude,
         longitude,
       );
@@ -154,11 +155,11 @@ class Func {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      _data = 'Data created successfully : ${response.body}';
+      print('Data created successfully : ${response.body}');
       return true; // ส่งสำเร็จ
     } else {
       print('Failed to create data: ${response.body}');
-      _data = "Failed to create data";
+      print("Failed to create data");
       return false; // ส่งไม่สำเร็จ
     }
   }

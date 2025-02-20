@@ -40,6 +40,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Future<void> startLocationUpdates() async {
     stations = await function.Fetch_Stations();
+    print(stations);
     _timer = Timer.periodic(Duration(seconds: 3), (timer) async {
       // GET roundCall
       roundCall = GetroundCall();
@@ -255,7 +256,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           context,
                           MaterialPageRoute(
                               builder: (context) =>
-                                  Bus(ipAddress: widget.ipAddress)),
+                                  BusScreen()),
                         );
                       },
                       child: Ink(

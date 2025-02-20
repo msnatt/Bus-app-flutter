@@ -53,7 +53,7 @@ class _PinCodeWidgetState extends State<PinCodeWidget> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (BuildContext context) {
-            return Bus(ipAddress: ipAddress);
+            return BusScreen();
           },
         ),
       );

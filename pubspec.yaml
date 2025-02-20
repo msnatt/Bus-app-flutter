@@ -88,6 +88,7 @@ flutter:
     - assets/images/station_btn.png
     - assets/images/app_icon.png
     - assets/station.json
+    - assets/buses.json
     - assets/images/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

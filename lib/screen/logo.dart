@@ -1,8 +1,6 @@
-import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:my_appbus/screen/pin_code_widget.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -61,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void getCurrentLocation() async {
     try {
-      Position position = await _determinePosition();
+      await _determinePosition();
       setState(() {
         allow_gps = true; // อนุญาต GPS แล้ว
       });

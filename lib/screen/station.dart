@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:my_appbus/api/func.dart';
 
 class StationScreen extends StatefulWidget {
   const StationScreen({super.key});
@@ -11,9 +13,10 @@ class StationScreen extends StatefulWidget {
 
 class _StationScreenState extends State<StationScreen>
     with SingleTickerProviderStateMixin {
-  Map<String, dynamic> stations = {}; // เก็บข้อมูลสถานีจาก JSON
+  Map<String, dynamic> stations = {};
+  Func function = Func();
   double radiusbtn = 24;
-  double height = 50;
+  double height = 100;
   double width = 90;
   String name_station = "";
   String data_station = "";
@@ -31,6 +34,7 @@ class _StationScreenState extends State<StationScreen>
     setState(() {
       stations = jsonData["stations"];
     });
+    print(jsonData);
   }
 
   void loadDataStationSelected(String select_station) async {
@@ -93,19 +97,19 @@ class _StationScreenState extends State<StationScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  
                   const SizedBox(height: 40),
                   const SizedBox(
-                    height: 60 ,
+                    height: 60,
                     child: Text(
-                    'เลือกสถานีเพื่อดูข้อมูล',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      'เลือกรถบัสเพื่อดูข้อมูล',
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                   ), // เว้นที่ด้านบน
-                  
+
                   Expanded(
                     child: ListView(
-                      padding: const EdgeInsets.only(left: 10,right: 10),
+                      padding: const EdgeInsets.only(left: 10, right: 10),
                       children: stations.entries.map((entry) {
                         return Padding(
                           padding: const EdgeInsets.all(10.0),
